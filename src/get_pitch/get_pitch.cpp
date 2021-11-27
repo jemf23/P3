@@ -59,16 +59,33 @@ int main(int argc, const char *argv[]) {
   int n_shift = rate * FRAME_SHIFT;
 
   // Define analyzer
-  PitchAnalyzer analyzer(n_len, rate, PitchAnalyzer::HAMMING, 50, 500);
+  PitchAnalyzer analyzer(n_len, rate, PitchAnalyzer::RECT, 50, 500);
 
   /// \TODO
   /// Preprocess the input signal in order to ease pitch estimation. For instance,
   /// central-clipping or low pass filtering may be used.
+  /// \DONE
+  /// Central-clipping implementado.
+
+  //CENTER-CLIPPING
+  vector<float>::iterator it;
+  vector<float> cc;
+  float cota=0.0055;
+
+  for(it = x.begin(); it != x.end(); ++it){
+    if(*it > cota)
+      cc.push_back(*it-cota);
+    else if(*it < -cota)
+      cc.push_back(*it+cota);
+    else
+      cc.push_back(0);
+  }
+
   
   // Iterate for each frame and save values in f0 vector
   vector<float>::iterator iX;
   vector<float> f0;
-  for (iX = x.begin(); iX + n_len < x.end(); iX = iX + n_shift) {
+  for (iX = cc.begin(); iX + n_len < cc.end(); iX = iX + n_shift) {
     float f = analyzer(iX, iX + n_len);
     f0.push_back(f);
   }
@@ -76,6 +93,25 @@ int main(int argc, const char *argv[]) {
   /// \TODO
   /// Postprocess the estimation in order to supress errors. For instance, a median filter
   /// or time-warping may be used.
+
+  //MEDIAN FILTER
+  vector<float>::iterator m;
+  vector<float> med;
+  //int i=0;
+  /*for(m = f0.begin(); m != f0.end(); ++m){
+    if(i%2 == 0){
+      med.push_back(0.5*(f0.get(i/2)));
+    }
+  }*/
+  /*
+  for(int j = 0; j < f0.size(); j++){
+    if(j%2 == 0){
+      med.push_back(0.5*(f0[j/2]+f0[(j/2)+1]));
+    }
+    else{
+      med.push_back(f0[(j-1)*2]);
+    }
+  }*/
 
   // Write f0 contour into the output file
   ofstream os(output_txt);
