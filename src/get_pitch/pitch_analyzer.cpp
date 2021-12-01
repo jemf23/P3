@@ -4,7 +4,6 @@
 #include <math.h>
 #include "pitch_analyzer.h"
 
-
 using namespace std;
 
 /// Name space of UPC
@@ -13,9 +12,9 @@ namespace upc {
 
     for (unsigned int l = 0; l < r.size(); ++l) {
   		/// \TODO Compute the autocorrelation r[l]
-      /// \DONE Albino nos ha chivado el cálculo de la autocorrelación
+      /// \DONE Albino nos ha chivado el calculo de la autocorrelacion.
       r[l]=0;
-      for (unsigned int n = l; n < x.size(); n++){
+      for (unsigned int n = l; n<x.size(); n++){
         r[l] += x[n-l]*x[n];
       }
     }
@@ -33,21 +32,21 @@ namespace upc {
     switch (win_type) {
     case HAMMING:{
       /// \TODO Implement the Hamming window
-      /// \DONE Ventana de Hamming implementada
       float a0=0.53836;
-      double pi=3.141592653589793;
-      for(int i = 0; i < frameLen; i++){
-        window[i]=a0-(1-a0)*cos((2*pi*i)/frameLen);
+      //double pi=3.141592653589793;
+      for(unsigned int i = 0; i < frameLen; i++){
+        window[i]=a0-(1-a0)*cos((2*M_PI*i)/frameLen);
       }
+      /// \DONE Ventana de Hamming implementada
+    
+      break;
     }
-    break;
     case RECT:{
-       window.assign(frameLen, 1);
-    }
-    break;
-    default:{
       window.assign(frameLen, 1);
+      break;
     }
+    default:
+      window.assign(frameLen, 1);
     }
   }
 
@@ -63,13 +62,26 @@ namespace upc {
       npitch_max = frameLen/2;
   }
 
-  bool PitchAnalyzer::unvoiced(float pot, float r1norm, float rmaxnorm) const {
+  bool PitchAnalyzer::unvoiced(float pot, float r1norm, float rmaxnorm, float zcr) const {
     /// \TODO Implement a rule to decide whether the sound is voiced or not.
     /// * You can use the standard features (pot, r1norm, rmaxnorm),
     ///   or compute and use other ones.
+
     /// \DONE Implementado en clase (15/11/2021)
 
     //CON CENTER CLIPPING, COTAS AJUSTADAS 90.77% 
+    //float threshold1=0.5;
+    //float threshold2=0.90;
+    //float threshold3=0;
+    //normpot=pot/maxPot;
+    if(/*pot > threshold3 &&*/ zcr < threshold4 )  //para señales fractivas
+      return false;
+    if((r1norm > threshold1 || rmaxnorm > threshold2) /*&& pot > threshold3*/){
+      return false;
+    }else{
+      return true;
+    }
+    /*
     if(pot > -28){ 
       if(r1norm > 0.99 && rmaxnorm < 0.55){
         return true;
@@ -80,42 +92,37 @@ namespace upc {
       else if(r1norm > 0.9 && rmaxnorm > 0.9){
         return false;
       }
-      
+
     }
     else{
       if(r1norm > 0.975 && rmaxnorm > 0.5){ //con 0.97 -> 90.53%
         return false;
       }
       return true;
-    }
-
-
-    //CON CENTER CLIPPING, COTAS POCO AJUSTADAS 90.54%
-    /*
-    if(r1norm > 0.9 && rmaxnorm < 0.3)
-      return true;
-    else if(pot > -29 && r1norm > 0.57 && rmaxnorm > 0.4) //SONORO
-      return false; 
-    else//SORDO
-      return true; */
-
-    //ANTES DE CENTER CLIPPING
-    /*if(pot > -70)//&& r1norm > 0 && rmaxnorm > 0.5) //SONORO
-      return false; //OJO!, el 15/11/21 lo pusimos a false!!
-    else if(r1norm > 0.97)
-      return false;
-    else//SORDO
-      return true; //ANTES DE CENTER CLIPPING*/
-
-    
+    }*/
   }
 
-  float PitchAnalyzer::compute_pitch(vector<float> & x) const {
+  //zcr
+  float PitchAnalyzer::compute_zcr(vector<float> & x, unsigned int N, unsigned int fm) const {
+	  unsigned int i=0;
+	  float zcr=0;
+	  for(i=1;i<N;i++){
+		  if((x[i]*x[i-1])<0){
+			  zcr+=1;
+		  }
+	  }
+	  zcr=((float)1/(N-1))*zcr;
+	  zcr=fm/((float)2)*zcr;
+	//printf("Tasa de cruzes por cero de la señal: %.2f /n",zcr);
+	  return zcr;
+  }
+
+  float PitchAnalyzer::compute_pitch(vector<float> & x,float maxPot) const {
     if (x.size() != frameLen)
       return -1.0F;
 
     //Window input frame
-    for (unsigned int i=0; i<x.size(); ++i)
+    for (unsigned int i=0; i < x.size(); ++i)
       x[i] *= window[i];
 
     vector<float> r(npitch_max);
@@ -132,32 +139,37 @@ namespace upc {
 	///    - The lag corresponding to the maximum value of the pitch.
     ///	   .
 	/// In either case, the lag should not exceed that of the minimum value of the pitch.
-  /// \DONE Implementado en clase (15/11/2021)
-    for(iR = r.begin() + npitch_min; iR < r.begin()+npitch_max; iR++){
-      if(*iR > *iRMax){
-        iRMax = iR;
-      }
+  /// \DONE Otra chivada de Albino (1st version).
+  for(iR = r.begin() + npitch_min; iR < r.begin()+npitch_max; iR++){
+    if(*iR > *iRMax){
+      iRMax = iR;
     }
+  }
+  //https://stackoverflow.com/questions/7719978/finding-max-value-in-an-array/43921864
+
     unsigned int lag = iRMax - r.begin();
 
-    float pot = 10 * log10(r[0]);
+    float pot = (10 * log10(r[0]/x.size())); //frame power in dB
+    pot = r[0] / maxPot;  //norm power (normalized with the power of the frame that has maxpower in the signal (before clipping))
+    //float pot = r[0];
+
+    //ZCR
+  float zcr=compute_zcr(x, frameLen, samplingFreq) ;
 
     //You can print these (and other) features, look at them using wavesurfer
     //Based on that, implement a rule for unvoiced
     //change to #if 1 and compile
 #if 1
     if (r[0] > 0.0F){
-      cout << pot << '\t' << r[1]/r[0] << '\t' << r[lag]/r[0] << endl;
-      /*for(int i=0; i < r.size(); i++)
-        cout << x[i] << endl;*/
+      //cout << pot << '\t' << r[1]/r[0] << '\t' << r[lag]/r[0] << endl;
+      cout << maxPot << '\t\t' << pot << '\t' << r[1]/r[0] << '\t' << r[lag]/r[0] << endl;
+      cout << '\n' << zcr << '\n';
     }
 #endif
     
-      if (unvoiced(pot, r[1]/r[0], r[lag]/r[0]))
-        return 0;
-      else{
-        cout << (float) samplingFreq/(float) lag << endl;
-        return (float) samplingFreq/(float) lag;
-      }
+    if (unvoiced(pot, r[1]/r[0], r[lag]/r[0], zcr))
+      return 0;
+    else
+      return (float) samplingFreq/(float) lag;
   }
 }

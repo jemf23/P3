@@ -21,6 +21,10 @@ void print_results(int nframes, int num_voiced, int num_unvoiced,
   int num_voiced_unvoiced, int num_unvoiced_voiced, int num_voiced_voiced,
   int num_gross_errors,  float fine_errori, string filename);
 
+float print_results_total(int nframes, int num_voiced, int num_unvoiced,
+  int num_voiced_unvoiced, int num_unvoiced_voiced, int num_voiced_voiced,
+  int num_gross_errors,  float fine_errori, string filename);
+
 const float gross_threshold = 0.2F; //gross error:  +/-20 %
 
 static const char USAGE[] = R"(
@@ -106,8 +110,19 @@ int main(int argc, const char * argv[])  {
 
   if (nfiles > 1) {
     cout << "### Summary\n";
-    print_results(nTot, vTot, uTot, vuTot, uvTot, vvTot, grossTot, fineTot/nfiles, "TOTAL");
+    float scoreTot=print_results_total(nTot, vTot, uTot, vuTot, uvTot, vvTot, grossTot, fineTot/nfiles, "TOTAL");
     cout << "--------------------------\n\n";
+    //
+    ofstream myfile;
+    //const char *pathF="/home/rookie/PAV/P3/results/result_an_input_parameters.txt";
+    const char *pathF="./results/result_an_input_parameters.txt";
+    myfile.open (pathF, ios::out | ios::trunc); //If the file already existed, its previous content is deleted and replaced by the new one.
+    if (myfile.is_open()){
+      myfile << (scoreTot*100);
+
+      cout << "Total result saved in a text file at " << pathF << "\n";
+      myfile.close();
+    }
   }
  
   return 0;  
@@ -212,4 +227,54 @@ void print_results(int nframes, int num_voiced, int num_unvoiced,
 
   cout << fixed << setprecision(2);
   cout << "\n===>\t" << filename << ":\t" << 100 * score << " %\n";
+}
+
+//
+float print_results_total(int nframes, int num_voiced, int num_unvoiced,
+  int num_voiced_unvoiced, int num_unvoiced_voiced, int num_voiced_voiced,
+  int num_gross_errors,  float fine_error, string filename) {
+
+  float UU, UV, VV, VU;
+  float recU, recV, precU, precV, Fu, Fv, Fss, score;
+
+  cout << fixed << setprecision(2);
+
+  cout << "Num. frames:\t" << nframes 
+       << " = " << num_unvoiced << " unvoiced + " 
+       << num_voiced << " voiced\n";
+
+  cout << "Unvoiced frames as voiced:\t" << num_unvoiced_voiced << "/" << num_unvoiced 
+       << " (" << 100.0F * num_unvoiced_voiced/num_unvoiced << " %)\n";
+
+  cout << "Voiced frames as unvoiced:\t" << num_voiced_unvoiced << "/" << num_voiced 
+       << " (" << 100.0F * num_voiced_unvoiced/num_voiced << " %)\n";
+
+  cout << "Gross voiced errors (+" << 100*gross_threshold << " %):\t" << num_gross_errors << "/" << num_voiced_voiced
+       << " (" << 100.0F * num_gross_errors/(1.e-12 + num_voiced_voiced) << " %)\n";
+  cout << "MSE of fine errors:\t" << 100*fine_error << " %\n";
+
+  VV = num_voiced_voiced;
+  VU = num_voiced_unvoiced;
+  UV = num_unvoiced_voiced;
+  UU = num_unvoiced - num_unvoiced_voiced;
+
+  VV -= num_gross_errors / 2.;
+  VU += num_gross_errors / 2.;
+
+  recU = UU / (1.e-12 + UU + UV);
+  recV = VV / (1.e-12 + VV + VU);
+  precU = UU / (1.e-12 + UU + VU);
+  precV = VV / (1.e-12 + VV + UV);
+
+  Fu = 2 * (recU * precU) / (1.e-12 + recU + precU);
+  Fv = 2 * (recV * precV) / (1.e-12 + recV + precV);
+
+  Fss = sqrt(Fu * Fv);
+
+  score = Fss * (1 - fine_error);
+
+  cout << fixed << setprecision(2);
+  cout << "\n===>\t" << filename << ":\t" << 100 * score << " %\n";
+
+  return score;
 }
