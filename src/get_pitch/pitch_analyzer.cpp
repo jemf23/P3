@@ -86,7 +86,8 @@ namespace upc {
       if(r1norm > 0.975 && rmaxnorm > 0.5){ //con 0.97 -> 90.53%
         return false;
       }
-      return true;
+      else 
+        return true;
     }
 
 
@@ -143,7 +144,7 @@ namespace upc {
     //You can print these (and other) features, look at them using wavesurfer
     //Based on that, implement a rule for unvoiced
     //change to #if 1 and compile
-#if 1
+#if 0
     if (r[0] > 0.0F){
       cout << pot << '\t' << r[1]/r[0] << '\t' << r[lag]/r[0] << endl;
       /*for(int i=0; i < r.size(); i++)
@@ -154,7 +155,7 @@ namespace upc {
       if (unvoiced(pot, r[1]/r[0], r[lag]/r[0]))
         return 0;
       else{
-        cout << (float) samplingFreq/(float) lag << endl;
+        //cout << (float) samplingFreq/(float) lag << endl;
         return (float) samplingFreq/(float) lag;
       }
   }
