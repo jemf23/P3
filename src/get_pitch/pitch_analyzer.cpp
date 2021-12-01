@@ -36,7 +36,7 @@ namespace upc {
       /// \DONE Ventana de Hamming implementada
       float a0=0.53836;
       double pi=3.141592653589793;
-      for(int i = 0; i < frameLen; i++){
+      for(unsigned int i = 0; i < frameLen; i++){
         window[i]=a0-(1-a0)*cos((2*pi*i)/frameLen);
       }
     }
@@ -74,7 +74,7 @@ namespace upc {
       if(r1norm > 0.99 && rmaxnorm < 0.55){
         return true;
       }
-      else if(r1norm > 0.9 && rmaxnorm < 0.38){
+      else if(r1norm > 0.9 && rmaxnorm < 0.38){ //Ver si es util
         return true;
       }
       else if(r1norm > 0.9 && rmaxnorm > 0.9){
@@ -105,9 +105,7 @@ namespace upc {
     else if(r1norm > 0.97)
       return false;
     else//SORDO
-      return true; //ANTES DE CENTER CLIPPING*/
-
-    
+      return true; //ANTES DE CENTER CLIPPING*/ 
   }
 
   float PitchAnalyzer::compute_pitch(vector<float> & x) const {

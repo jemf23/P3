@@ -38,6 +38,10 @@ Ejercicios básicos
 		(r[0]), la autocorrelación normalizada de uno (r1norm = r[1] / r[0]) y el valor de la
 		autocorrelación en su máximo secundario (rmaxnorm = r[lag] / r[0]).
 
+    <img src= "img/pitch_programa.jpg" width="1000">
+
+    
+
 		Puede considerar, también, la conveniencia de usar la tasa de cruces por cero.
 
 	    Recuerde configurar los paneles de datos para que el desplazamiento de ventana sea el adecuado, que
@@ -46,6 +50,15 @@ Ejercicios básicos
       - Use el detector de pitch implementado en el programa `wavesurfer` en una señal de prueba y compare
 	    su resultado con el obtenido por la mejor versión de su propio sistema.  Inserte una gráfica
 		ilustrativa del resultado de ambos detectores.
+
+    <img src= "img/pitch_wave_programa.jpg" width="1000">
+
+    _Como podemos observar a simple vista el pitch obtenido por el Wavesurfer está
+    desplazado respecto al obtenido por nuestro programa, por otro lado, si nos
+    fijamos en la forma de los puntos de la estimación de pitch que nos propor-
+    ciona Wavesurfer (2º gráfica) observamos que coinciden con la forma de 
+    nuestra estimación de pitch (3º gráfica) teniendo disparidades en algunas pe-
+    queñas zonas, pero en general se parecen._
   
   * Optimice los parámetros de su sistema de detección de pitch e inserte una tabla con las tasas de error
     y el *score* TOTAL proporcionados por `pitch_evaluate` en la evaluación de la base de datos 
@@ -54,6 +67,7 @@ Ejercicios básicos
    * Inserte una gráfica en la que se vea con claridad el resultado de su detector de pitch junto al del
      detector de Wavesurfer. Aunque puede usarse Wavesurfer para obtener la representación, se valorará
 	 el uso de alternativas de mayor calidad (particularmente Python).
+   _Pregunta repetida !!_
    
 
 Ejercicios de ampliación

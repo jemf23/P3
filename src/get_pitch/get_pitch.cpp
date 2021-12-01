@@ -39,6 +39,8 @@ int main(int argc, const char *argv[]) {
 	/// \TODO 
 	///  Modify the program syntax and the call to **docopt()** in order to
 	///  add options and arguments to the program.
+  /// \DONE 
+  /// Insertar mensaje.
     std::map<std::string, docopt::value> args = docopt::docopt(USAGE,
         {argv + 1, argv + argc},	// array of arguments, without the program name
         true,    // show help if requested
@@ -93,26 +95,25 @@ int main(int argc, const char *argv[]) {
   /// \TODO
   /// Postprocess the estimation in order to supress errors. For instance, a median filter
   /// or time-warping may be used.
+  /// \DONE
+  /// Filtro de mediana implementado.
+ 
 
   //MEDIAN FILTER
-  vector<float>::iterator m;
-  vector<float> med;
-  //int i=0;
-  /*for(m = f0.begin(); m != f0.end(); ++m){
-    if(i%2 == 0){
-      med.push_back(0.5*(f0.get(i/2)));
-    }
-  }*/
-  /*
-  for(int j = 0; j < f0.size(); j++){
-    if(j%2 == 0){
-      med.push_back(0.5*(f0[j/2]+f0[(j/2)+1]));
-    }
-    else{
-      med.push_back(f0[(j-1)*2]);
-    }
-  }*/
+  vector<float> f0filtered = f0;
 
+  unsigned int L_median_W = 3;
+  vector<float> window(L_median_W);
+
+  unsigned int offset= (L_median_W-1)/2;
+  for(unsigned int n = offset; n < f0.size()-offset; ++n){
+    for(unsigned int j=0; j < L_median_W; ++j)
+      window[j] = f0[n - offset + j];
+    sort(window.begin(), window.end());
+    f0filtered[n]=window[offset];
+  }
+  f0 = f0filtered;
+  
   // Write f0 contour into the output file
   ofstream os(output_txt);
   if (!os.good()) {
