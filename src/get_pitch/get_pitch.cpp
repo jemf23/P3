@@ -29,12 +29,12 @@ Usage:
 Options:
     -h, --help  Show this screen
     --version   Show the version of the project
-    -1=FLOAT, --thr1norm=FLOAT  Threshold for r[1]/r[0] unvoice decision  [default: 0.90]
-    -2=FLOAT, --thrmaxnorm=FLOAT  Threshold for r[lag]/r[0] unvoice decision  [default: 0.5]
-    -3=FLOAT, --thpower=FLOAT  Threshold for normalized power used on the unvioce decision  [default: -0.0002]
+    -1=FLOAT, --thr1norm=FLOAT  Threshold for r[1]/r[0] unvoice decision  [default: 0.60]
+    -2=FLOAT, --thrmaxnorm=FLOAT  Threshold for r[lag]/r[0] unvoice decision  [default: 0.35]
+    -3=FLOAT, --thpower=FLOAT  Threshold for normalized power used on the unvioce decision  [default: -52]
     -4=FLOAT, --thzcr=FLOAT  Threshold zcr for unvoice decision [default: 2000]
     -l=INT, --length_median_w=INT  Length of the window used on the median filter, this value must be an odd number [default: 3]
-    -c=FLOAT, --alpha_clipping=FLOAT  Alpha used to determinate the threshold for the central-clipping [default: 0.005]
+    -c=FLOAT, --alpha_clipping=FLOAT  Alpha used to determinate the threshold for the central-clipping [default: 0.62]
 
 Arguments:
     input-wav   Wave file with the audio signal
@@ -47,6 +47,8 @@ int main(int argc, const char *argv[]) {
 	/// \TODO 
 	///  Modify the program syntax and the call to **docopt()** in order to
 	///  add options and arguments to the program.
+  /// \DONE 
+  /// Insertar mensaje.
     std::map<std::string, docopt::value> args = docopt::docopt(USAGE,
         {argv + 1, argv + argc},	// array of arguments, without the program name
         true,    // show help if requested
@@ -92,14 +94,17 @@ int main(int argc, const char *argv[]) {
     for(int i=0; i < n_len; ++i){
       power+=(x2[i]*x2[i]);
     }
-    //power=((float)1/n_len)*power;/*1.0f*/
-    power=power/n_len;/*1.0f*/
+    //power=((float)1/n_len)*power;
+    power=power/n_len;
 	//printf("Potencia media de la señal en decibelios: %.2f /n",power);
     if(power>maxPot){
       maxPot=power;
     }
     x2.clear();
   }
+
+
+
   /// \TODO
   /// Preprocess the input signal in order to ease pitch estimation. For instance,
   /// central-clipping or low pass filtering may be used.
@@ -109,12 +114,19 @@ int main(int argc, const char *argv[]) {
   
   //float th_cc = 0.05;
   float th_cc=maxPot*alpha_cc;
-  for (unsigned int i=0; i < x.size(); ++i)
+  for (unsigned int i=0; i < x.size(); ++i){
     if(abs(x[i]) < th_cc){
       x[i] = 0;
+    }else if( x[i] > th_cc){
+      x[i]=x[i] - th_cc;
+    }else if( x[i]< -th_cc){
+      x[i]=x[i] + th_cc;
+    }
   }
+
+  maxPot=1; //no normalize 
   
-  maxPot=10*log10(maxPot);/*1.0f*/ // in dB
+  //maxPot=10*log10(maxPot);/*1.0f*/ // in dB
   /* Emi solution
   vector<float>::iterator it;
   vector<float> cc;
@@ -142,6 +154,9 @@ int main(int argc, const char *argv[]) {
   /// \TODO
   /// Postprocess the estimation in order to supress errors. For instance, a median filter
   /// or time-warping may be used.
+  /// \DONE
+  /// Filtro de mediana implementado.
+ 
 
   /// \DONE 
   /// Median filter, this method of medianfilter uses a moving window with a length of L. The value at
@@ -170,9 +185,7 @@ int main(int argc, const char *argv[]) {
   }
   /* EMI
   */
-
-
-
+  
   // Write f0 contour into the output file
   ofstream os(output_txt);
   if (!os.good()) {

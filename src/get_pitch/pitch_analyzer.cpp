@@ -74,19 +74,28 @@ namespace upc {
     //float threshold2=0.90;
     //float threshold3=0;
     //normpot=pot/maxPot;
-    if(/*pot > threshold3 &&*/ zcr < threshold4 )  //para señales fractivas
-      return false;
-    if((r1norm > threshold1 || rmaxnorm > threshold2) /*&& pot > threshold3*/){
-      return false;
-    }else{
+    //if (zcr > threshold4)
+
+    //Unvoice decision
+    //if( r1norm < threshold1 || rmaxnorm < threshold2 || pot < threshold3  || zcr > threshold4){
+    //  return true;
+    if(/*pot < threshold3 ||*/ rmaxnorm < 0.25 || r1norm < 0.60){
       return true;
+    }else if(r1norm < 0.89 && rmaxnorm < 0.42){
+      return true;
+    }else if(zcr > threshold4 && pot < -52){ 
+      return true;
+    }else{
+      //voice decision
+      return false;
     }
+    
     /*
     if(pot > -28){ 
       if(r1norm > 0.99 && rmaxnorm < 0.55){
         return true;
       }
-      else if(r1norm > 0.9 && rmaxnorm < 0.38){
+      else if(r1norm > 0.9 && rmaxnorm < 0.38){ //Ver si es util
         return true;
       }
       else if(r1norm > 0.9 && rmaxnorm > 0.9){

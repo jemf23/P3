@@ -30,7 +30,7 @@ for (unsigned int l = 0; l < r.size(); ++l) {
      unos 30 ms de un fonema sonoro y su periodo de pitch; y, en otro *subplot*, se vea con claridad la
 	 autocorrelación de la señal y la posición del primer máximo secundario.
 
-  _La señal la hemos cogido de la database: [sb050.wav](matlab_code/sb050.wav) se trata de una mujer que dice: "so many overwhelm me and I was move to tears", hemos seleccionado el instante de la vocal a y calculado su autocorrelación. Utilizando el lag del primer máximo, obtenemos un pitch=1/lag*fs=232.5581Hz, tambien hemos utilizado la funcion [pitch()](https://www.mathworks.com/help/audio/ref/pitch.html) de la [toolbox de audio](https://www.mathworks.com/help/audio/) para comprobar el resultado (esta función nos da la opción de calcular el pitch con diferentes métodos a parte de la autocorrelación, ej:Cepstrum Pitch Determination), hemos obtenido el mismo resultado, por lo que concluimos que es un buen método para estimar el pitch y que el parlante se trata de una mujer, lo que corroboramos fácilmente escuchando el audio._
+     _La señal la hemos cogido de la database: [sb050.wav](matlab_code/sb050.wav) es una mujer que dice: "so many overwhelm me and I was move to tears", hemos seleccionado el instante de tiempo de la vocal a y calculado su autocorrelación. Utilizando el lag del primer máximo, obtenemos un pitch=1/lag*fs=232.5581Hz, tambien hemos utilizado la funcion [pitch()](https://www.mathworks.com/help/audio/ref/pitch.html) de la [toolbox de audio](https://www.mathworks.com/help/audio/) para comprobar el resultado (esta función nos da la opción de calcular el pitch con diferentes métodos a parte de la autocorrelación, ej:Cepstrum Pitch Determination), hemos obtenido el mismo resultado, por lo que concluimos que es un buen método para estimar el pitch y que el parlante se trata de una mujer, lo que corroboramos fácilmente escuchando el audio._
 
    <img src="img/matlab_autocorr.jpg" width="1000">
 
@@ -119,6 +119,18 @@ f0 = pitch(x2,fs)
       return true;
     }
 ```
+ _Para la decisión final hemos decidido implementar el zero-crossing rate aprovechandolo de la práctica anterior, y al final la potencia no la hemos normalizado (daba peores resultados, puede que la razón sea la explicada en el apartado de center-clipping, segundo apartado de la ampliación)_
+
+```c++
+    if( r1norm < threshold1 || rmaxnorm < threshold2 || pot < threshold3  || zcr > threshold4){
+      return true;
+    }else if(r1norm < 0.90 && rmaxnorm < 0.3){
+      return true;
+    }else{
+      //voice decision
+      return false;
+    }
+```
 
 - Una vez completados los puntos anteriores, dispondrá de una primera versión del detector de pitch. El 
   resto del trabajo consiste, básicamente, en obtener las mejores prestaciones posibles con él.
@@ -181,9 +193,14 @@ Ejercicios de ampliación
 
   //float th_cc = 0.05;
   float th_cc=maxPot*alpha_cc;
-  for (unsigned int i=0; i < x.size(); ++i)
+  for (unsigned int i=0; i < x.size(); ++i){
     if(abs(x[i]) < th_cc){
       x[i] = 0;
+    }else if( x[i] > th_cc){
+      x[i]=x[i] - th_cc;
+    }else if( x[i]< -th_cc){
+      x[i]=x[i] + th_cc;
+    }
   }
   ```
 _Ejemplo con matlab: [central_clipping_ej.m](matlab_code/central_clipping_ej.m)_
@@ -191,7 +208,7 @@ _Ejemplo con matlab: [central_clipping_ej.m](matlab_code/central_clipping_ej.m)_
 
   _El threshold usado en el center-clipping lo sacamos multiplicando el parámetro alpha por la potencia máxima de la señal (potencia del tramo con mayor potencia). Así no utilizamos el mismo threshold para todas las señales de la database, y creamos una dependencia para ajustarlo a la potencia de cada señal._
 
-  _Esto nos crea una incoherencia en la normalización de la potencia, ya que hacemos el clipping después de calcular la potencia máxima de toda la señal, por lo que después del clipping esta potencia será menor (Ejemplo del ‘error’: en la trama con potencia máxima, al normalizar no nos dará 1 sino un valor menor, esto pasa en todas las tramas). Tendríamos que volver a calcularla. Comentamos este 'error' pero no acaba afectando a la decisión final, simplemente nos reduce el valor de todas las potencias normalizadas por lo que simplemente tendremos que reducir un poco el threshold de la potencia._
+  _Esto nos crea una incoherencia en la normalización de la potencia, ya que hacemos el clipping después de calcular la potencia máxima de toda la señal, por lo que después del clipping esta potencia será menor (Ejemplo del ‘error’: en la trama con potencia máxima, al normalizar no nos dará 1 sino un valor menor, esto pasa en todas las tramas). Tendríamos que volver a calcularla. Comentamos este 'error' pero no acaba afectando a la decisión final, simplemente nos reduce el valor de todas las potencias normalizadas por lo que solo tendremos que reducir un poco el threshold de la potencia._
 
   <img src="img/Pnorm.jpg" width="150">
 
@@ -247,6 +264,11 @@ Filtro de mediana:_
     (AMDF), etc.
   * Optimización **demostrable** de los parámetros que gobiernan el detector, en concreto, de los que
     gobiernan la decisión sonoro/sordo.
+
+    
+    _Para la optimización hemos terminado haciéndola igual que en la practica 2, shell script de optimizacion: [run_get_pitch.sh](scripts/run_get_pitch.sh), el cual se puede ejecutar sin ningún argumento, lo que ejecuta get_pitch para toda la base de datos y luego se evalúa.- 4 argumentos que serán los thresholds de las 4 principales features: thnorm, thmax, thpot, thzcr, y 8 argumentos que servirán para hacer una búsqueda de las mismas features en los rangos especificados y con la resolución directamente introducida en el código._
+ 
+    _En la carpeta matlab_code se puede ver el codigo que hemos intentado hacer para optimizar la estimacion del pitch de forma optima, utilizando la funcion [fminsearch() de matlab](https://es.mathworks.com/help/matlab/ref/fminsearch.html), esta utiliza un metodo Derivative-free optimization ya que tratamos nuestro proyecto como una[black-box](matlab_code/black_box_function.m), a la cual entramos ciertos parametros (thresholds) y nos da un resultado: TOTAL que imprimimos en un fichero de texto, la razon por la que no hemos podido llevarlo a cabo es el fallo al hacer un run del shell script des de la aplicacion de matlab windows._
 
   * Cualquier otra técnica que se le pueda ocurrir o encuentre en la literatura.
 
