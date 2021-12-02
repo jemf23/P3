@@ -100,54 +100,6 @@ namespace upc {
         return true;
     }
   }
-    //Unvoice decision
-    //if(zcr > 1000 && pot < threshold3){
-    //  return true;
-    //}else 
-//    if( r1norm < 0.5 || rmaxnorm < 0.2 || pot < -55|| (r1norm < 0.94 && rmaxnorm < 0.4) /*|| zcr > threshold4*/){
-//      return true;
-//    }
-//    else{
-//      return false;
-//    }
-//  }
-    /*
-    
-    if(pot < threshold3 || rmaxnorm < 0.25 || r1norm < 0.60){
-      return true;
-    }else if(r1norm < 0.89 && rmaxnorm < 0.42){
-      return true;
-    }else if(zcr > threshold4 && pot < -52){ 
-      return true;
-    }else{
-      //voice decision
-      return false;
-    }
-  }*/
-    
-    /*
-  
-    if(pot > threshold1){ 
-      if(r1norm > 0.99 && rmaxnorm < 0.55){
-        return true;
-      }
-      else if(r1norm > 0.9 && rmaxnorm < 0.38){ //Ver si es util
-        return true;
-      }
-      else if(r1norm > 0.9 && rmaxnorm > 0.9){
-        return false;
-      }
-
-    }
-    else{
-      if(r1norm > 0.975 && rmaxnorm > 0.5){ //con 0.97 -> 90.53%
-        return false;
-      }
-      else 
-        return true;
-    }
-  }*/
-
 
   //zcr
   float PitchAnalyzer::compute_zcr(vector<float> & x, unsigned int N, unsigned int fm) const {
