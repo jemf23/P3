@@ -12,11 +12,12 @@ namespace upc {
 
     for (unsigned int l = 0; l < r.size(); ++l) {
   		/// \TODO Compute the autocorrelation r[l]
-      /// \DONE Albino nos ha chivado el calculo de la autocorrelacion.
+      /// \DONE Calculo de la autocorrelacion.
       r[l]=0;
-      for (unsigned int n = l; n<x.size(); n++){
-        r[l] += x[n-l]*x[n];
+      for (unsigned int n = 0; n < x.size()-l; n++){
+        r[l] += x[n+l]*x[n];
       }
+      r[l]=r[l]/x.size();
     }
 
     if (r[0] == 0.0F) //to avoid log() and divide zero 
@@ -75,11 +76,43 @@ namespace upc {
     //float threshold3=0;
     //normpot=pot/maxPot;
     //if (zcr > threshold4)
+    //pot < 0.0059
 
+  if( rmaxnorm < threshold2 || r1norm < 0.275 || (zcr > threshold4)){
+    return true;
+  }
+ if(pot > threshold3){ 
+      if((r1norm > 0.99 && rmaxnorm < 0.56) /*|| zcr > 1570*/){
+        return true;
+      }
+      else if (r1norm > threshold1 && rmaxnorm < 0.378){ //Ver si es util
+        return true;
+      }
+      else if((r1norm > 0.9 || rmaxnorm > 0.387)){// && rmaxnorm > threshold1){
+        return false;
+      }
+      else
+        return true;
+   }else{
+      if(rmaxnorm > 0.5){ //con 0.97 -> 90.53%
+        return false;
+      }else
+        return true;
+    }
+  }
     //Unvoice decision
-    //if( r1norm < threshold1 || rmaxnorm < threshold2 || pot < threshold3  || zcr > threshold4){
+    //if(zcr > 1000 && pot < threshold3){
     //  return true;
+    //}else 
+//    if( r1norm < 0.5 || rmaxnorm < 0.2 || pot < -55|| (r1norm < 0.94 && rmaxnorm < 0.4) /*|| zcr > threshold4*/){
+//      return true;
+//    }
+//    else{
+//      return false;
+//    }
+//  }
     /*
+    
     if(pot < threshold3 || rmaxnorm < 0.25 || r1norm < 0.60){
       return true;
     }else if(r1norm < 0.89 && rmaxnorm < 0.42){
@@ -90,10 +123,11 @@ namespace upc {
       //voice decision
       return false;
     }
-    */
+  }*/
     
+    /*
   
-    if(pot > -28){ 
+    if(pot > threshold1){ 
       if(r1norm > 0.99 && rmaxnorm < 0.55){
         return true;
       }
@@ -112,7 +146,7 @@ namespace upc {
       else 
         return true;
     }
-  }
+  }*/
 
 
   //zcr
@@ -162,25 +196,39 @@ namespace upc {
 
     unsigned int lag = iRMax - r.begin();
 
-    float pot = (10 * log10(r[0]/x.size())); //frame power in dB
-    pot = r[0] / maxPot;  //norm power (normalized with the power of the frame that has maxpower in the signal (before clipping))
-    //float pot = r[0];
+    float pot = 10 * log10(r[0]); //frame power in dB
+    //float pot = (10 * log10(r[0]/x.size())); //frame power in dB done in autocorrelation
+    //pot = pot / maxPot;  //norm power (normalized with the power of the frame that has maxpower in the signal (before clipping))
+    pot = pot-maxPot;
+    //pot= 10*log(pot);
+
+    //Power 
+    /*
+    pot=0;
+    for(int i=0; i < x.size(); ++i){
+      pot+=(x[i]*x[i]);
+      //power+=x2[i];
+    }
+    //power=((float)1/n_len)*power;
+    pot=pot/x.size();
+    */
 
     //ZCR
-  float zcr=compute_zcr(x, frameLen, samplingFreq) ;
+    float zcr=compute_zcr(x, frameLen, samplingFreq) ;
 
     //You can print these (and other) features, look at them using wavesurfer
     //Based on that, implement a rule for unvoiced
     //change to #if 1 and compile
-#if 0
+#if 1
     if (r[0] > 0.0F){
       //cout << pot << '\t' << r[1]/r[0] << '\t' << r[lag]/r[0] << endl;
-      cout << maxPot << '\t\t' << pot << '\t' << r[1]/r[0] << '\t' << r[lag]/r[0] << endl;
-      cout << '\n' << zcr << '\n';
+      //cout << maxPot << '\t' << pot << '\t' << r[1]/r[0] << '\t' << r[lag]/r[0] << endl;
+      cout << '\t' << pot << endl;
+      //cout << '\n' << zcr << '\n';
     }
 #endif
     
-      if (unvoiced(pot, r[1]/r[0], r[lag]/r[0]))
+      if (unvoiced(pot, r[1]/r[0], r[lag]/r[0], zcr))
         return 0;
       else{
         //cout << (float) samplingFreq/(float) lag << endl;

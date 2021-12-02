@@ -14,27 +14,32 @@ Ejercicios básicos
   `get_pitch`.
 
    * Complete el cálculo de la autocorrelación e inserte a continuación el código correspondiente.
-```c++
-for (unsigned int l = 0; l < r.size(); ++l) {
+
+   ```c++
+    for (unsigned int l = 0; l < r.size(); ++l) {
+  		/// \TODO Compute the autocorrelation r[l]
+      /// \DONE Calculo de la autocorrelacion.
       r[l]=0;
-      for (unsigned int n = l; n<x.size(); n++){
-        r[l] += x[n-l]*x[n];
+      for (unsigned int n = 0; n < x.size()-l; n++){
+        r[l] += x[n+l]*x[n];
       }
+      r[l]=r[l]/x.size();
     }
 
     if (r[0] == 0.0F) //to avoid log() and divide zero 
       r[0] = 1e-10; 
-  }
-```
+    }
+    ```
+
    * Inserte una gŕafica donde, en un *subplot*, se vea con claridad la señal temporal de un segmento de
      unos 30 ms de un fonema sonoro y su periodo de pitch; y, en otro *subplot*, se vea con claridad la
 	 autocorrelación de la señal y la posición del primer máximo secundario.
 
-     _La señal la hemos cogido de la database: [sb050.wav](matlab_code/sb050.wav) es una mujer que dice: "so many overwhelm me and I was move to tears", hemos seleccionado el instante de tiempo de la vocal a y calculado su autocorrelación. Utilizando el lag del primer máximo, obtenemos un pitch=1/lag*fs=232.5581Hz, tambien hemos utilizado la funcion [pitch()](https://www.mathworks.com/help/audio/ref/pitch.html) de la [toolbox de audio](https://www.mathworks.com/help/audio/) para comprobar el resultado (esta función nos da la opción de calcular el pitch con diferentes métodos a parte de la autocorrelación, ej:Cepstrum Pitch Determination), hemos obtenido el mismo resultado, por lo que concluimos que es un buen método para estimar el pitch y que el parlante se trata de una mujer, lo que corroboramos fácilmente escuchando el audio._
+     _La señal para hacer este ejercicio la hemos cogido de la database: [sb050.wav](matlab_code/sb050.wav), es una mujer diciendo: "so many overwhelm me and I was move to tears", hemos seleccionado el instante de tiempo de la vocal a y calculado su autocorrelación, utilizando el lag del primer máximo, obtenemos un pitch=1/lag*fs=232.5581Hz. Tambien hemos utilizado la funcion [pitch()](https://www.mathworks.com/help/audio/ref/pitch.html) de la [toolbox de audio](https://www.mathworks.com/help/audio/) para comprobar el resultado (esta función nos da la opción de calcular el pitch con diferentes métodos a parte de la autocorrelación, ej:Cepstrum Pitch Determination), hemos obtenido el mismo resultado, por lo que concluimos que es un buen método para estimar el pitch y que el parlante se trata de una mujer, lo que corroboramos fácilmente escuchando el audio._
 
    <img src="img/matlab_autocorr.jpg" width="1000">
 
-_Hemos utilizado Matlab para realizar este ejercicio, el script se encuentra en: [autocorr_ej.m](matlab_code/autocorr_ej.m)_
+   _Hemos utilizado Matlab para realizar este ejercicio, el script se encuentra en: [autocorr_ej.m](matlab_code/autocorr_ej.m)_
 
 Code:
 ```Matlab
@@ -92,45 +97,61 @@ N=tmax*fs;  %sample
 x2=y(Nstart:N);  %cut signal
 f0 = pitch(x2,fs)
 ```
+
 	 NOTA: es más que probable que tenga que usar Python, Octave/MATLAB u otro programa semejante para
 	 hacerlo. Se valorará la utilización de la librería matplotlib de Python.
 
    * Determine el mejor candidato para el periodo de pitch localizando el primer máximo secundario de la
      autocorrelación. Inserte a continuación el código correspondiente.
-```c
-  vector<float>::const_iterator iR = r.begin(), iRMax = r.begin() + npitch_min;
 
-  for(iR = r.begin() + npitch_min; iR < r.begin()+npitch_max; iR++){
-    if(*iR > *iRMax){
-      iRMax = iR;
+  ```c
+    vector<float>::const_iterator iR = r.begin(), iRMax = r.begin() + npitch_min;
+
+    for(iR = r.begin() + npitch_min; iR < r.begin()+npitch_max; iR++){
+      if(*iR > *iRMax){
+        iRMax = iR;
+      }
     }
-  }
-  //https://stackoverflow.com/questions/7719978/finding-max-value-in-an-array/43921864
+    //https://stackoverflow.com/questions/7719978/finding-max-value-in-an-array/43921864
 
-  unsigned int lag = iRMax - r.begin();
-```
+    unsigned int lag = iRMax - r.begin();
+  ```
 
    * Implemente la regla de decisión sonoro o sordo e inserte el código correspondiente.
 
-```c++
+  ```c++
     if((r1norm > threshold1 || rmaxnorm > threshold2) && pot < threshold3){
       return false;
     }else{
       return true;
     }
-```
- _Para la decisión final hemos decidido implementar el zero-crossing rate aprovechandolo de la práctica anterior, y al final la potencia no la hemos normalizado (daba peores resultados, puede que la razón sea la explicada en el apartado de center-clipping, segundo apartado de la ampliación)_
-
-```c++
-    if( r1norm < threshold1 || rmaxnorm < threshold2 || pot < threshold3  || zcr > threshold4){
-      return true;
-    }else if(r1norm < 0.90 && rmaxnorm < 0.3){
-      return true;
-    }else{
-      //voice decision
-      return false;
+  ```
+ _Para la version final hemos terminado ajustando los márgenes de decisión para obtener el mejor resultado._
+   ```c++
+      if( rmaxnorm < threshold2 || r1norm < 0.275 || (zcr > threshold4)){
+    return true;
+  }
+ if(pot > threshold3){ 
+      if((r1norm > 0.99 && rmaxnorm < 0.56) /*|| zcr > 1570*/){
+        return true;
+      }
+      else if (r1norm > threshold1 && rmaxnorm < 0.378){ //Ver si es util
+        return true;
+      }
+      else if((r1norm > 0.9 || rmaxnorm > 0.387)){// && rmaxnorm > threshold1){
+        return false;
+      }
+      else
+        return true;
+   }else{
+      if(rmaxnorm > 0.5){ //con 0.97 -> 90.53%
+        return false;
+      }else
+        return true;
     }
-```
+  }
+  ```
+
 
 - Una vez completados los puntos anteriores, dispondrá de una primera versión del detector de pitch. El 
   resto del trabajo consiste, básicamente, en obtener las mejores prestaciones posibles con él.
@@ -143,16 +164,15 @@ f0 = pitch(x2,fs)
 		(r[0]), la autocorrelación normalizada de uno (r1norm = r[1] / r[0]) y el valor de la
 		autocorrelación en su máximo secundario (rmaxnorm = r[lag] / r[0]).
 
-<<<<<<< HEAD
-=======
-    <img src= "img/pitch_programa.JPG" width="1000">
+    <img src= "img/pitch_programa_e.JPG" width="1000">
+
     _Imagen del .wav y de la estimación de pitch de nuestro programa_
 
-    <img src= "img/pitch_pot_r1r0_rlagr0.JPG" width="1000">
+    <img src= "img/pitch_pot_r1r0_rlag_r0_e.JPG" width="1000">
+
     _Imagen de la estimación de pitch junto a potencia-r(1)/r(0)-r(lag)/r(0)._
 
 
->>>>>>> 18804e9eeb2611372bddfea04fca1ef65d022f25
 		Puede considerar, también, la conveniencia de usar la tasa de cruces por cero.
 
 	    Recuerde configurar los paneles de datos para que el desplazamiento de ventana sea el adecuado, que
@@ -161,10 +181,8 @@ f0 = pitch(x2,fs)
       - Use el detector de pitch implementado en el programa `wavesurfer` en una señal de prueba y compare
 	    su resultado con el obtenido por la mejor versión de su propio sistema.  Inserte una gráfica
 		ilustrativa del resultado de ambos detectores.
-<<<<<<< HEAD
-=======
 
-    <img src= "img/pitch_wave_programa.JPG" width="1000">
+    <img src= "img/pitch_wave_programa_e.JPG" width="1000">
 
     _Como podemos observar a simple vista el pitch obtenido por el Wavesurfer está
     desplazado respecto al obtenido por nuestro programa, por otro lado, si nos
@@ -172,15 +190,17 @@ f0 = pitch(x2,fs)
     Wavesurfer (2º gráfica) observamos que coinciden con la forma de nuestra
     estimación de pitch (3º gráfica) teniendo disparidades en algunas pequeñas
     zonas, pero en general se parecen._
->>>>>>> 18804e9eeb2611372bddfea04fca1ef65d022f25
   
   * Optimice los parámetros de su sistema de detección de pitch e inserte una tabla con las tasas de error
     y el *score* TOTAL proporcionados por `pitch_evaluate` en la evaluación de la base de datos 
 	`pitch_db/train`..
 
+  <img src= "img/tasas_finales_e.JPG" width="1000">
+
    * Inserte una gráfica en la que se vea con claridad el resultado de su detector de pitch junto al del
      detector de Wavesurfer. Aunque puede usarse Wavesurfer para obtener la representación, se valorará
 	 el uso de alternativas de mayor calidad (particularmente Python).
+   _Pregunta repetida !!_
    
 
 Ejercicios de ampliación
@@ -199,13 +219,13 @@ Ejercicios de ampliación
     <img src="img/mensaje_de_ayuda.jpg" width="800">
 
 
-
 - Implemente las técnicas que considere oportunas para optimizar las prestaciones del sistema de detección
   de pitch.
 
   Entre las posibles mejoras, puede escoger una o más de las siguientes:
 
   * Técnicas de preprocesado: filtrado paso bajo, *center clipping*, etc.
+
   ```c
   /// \TODO
   /// Preprocess the input signal in order to ease pitch estimation. For instance,
@@ -226,9 +246,10 @@ Ejercicios de ampliación
   }
   ```
 _Ejemplo con matlab: [central_clipping_ej.m](matlab_code/central_clipping_ej.m)_
-  <img src="img/cc_ej.jpg" width="700">
 
-  _El threshold usado en el center-clipping lo sacamos multiplicando el parámetro alpha por la potencia máxima de la señal (potencia del tramo con mayor potencia). Así no utilizamos el mismo threshold para todas las señales de la database, y creamos una dependencia para ajustarlo a la potencia de cada señal._
+  <img src="img/cc_ej.jpg" width="900">
+
+  _El threshold usado en el center-clipping lo sacamos multiplicando el parámetro alpha por la potencia máxima de la señal (potencia del tramo con mayor potencia). Así no utilizamos el mismo threshold para todas las señales de la database, y creamos una dependencia que se ajusta a la potencia de cada señal._
 
   _Esto nos crea una incoherencia en la normalización de la potencia, ya que hacemos el clipping después de calcular la potencia máxima de toda la señal, por lo que después del clipping esta potencia será menor (Ejemplo del ‘error’: en la trama con potencia máxima, al normalizar no nos dará 1 sino un valor menor, esto pasa en todas las tramas). Tendríamos que volver a calcularla. Comentamos este 'error' pero no acaba afectando a la decisión final, simplemente nos reduce el valor de todas las potencias normalizadas por lo que solo tendremos que reducir un poco el threshold de la potencia._
 
@@ -236,10 +257,9 @@ _Ejemplo con matlab: [central_clipping_ej.m](matlab_code/central_clipping_ej.m)_
 
   _P_cc es la potencia que hemos quitado con el central clipping._
 
-
   * Técnicas de postprocesado: filtro de mediana, *dynamic time warping*, etc.
 
-_En el código (DONE) hay una explicación del método usado.
+  _En el código (DONE) hay una explicación del método usado.
 Filtro de mediana:_
   ```c
   /// \TODO
@@ -272,9 +292,9 @@ Filtro de mediana:_
   }
   ```
 
-  _Probando diferentes longitudes de ventanas L hemos llegado a las siguientes conclusiones: una ventana mayor a 5 (2 valores a cada lado) perjudica los resultados, con L=5 obtenemos un mejor resultado que si no utilizamos el filtro de mediana (L=0) y con una longitud de ventana, L=3, (1 valor a cada lado) obtenemos el mejor resultado, eliminando esos picos repentinos en la gráfica del pitch que vemos en la figura del wavesurfer, sin perjudicar demasiado los límites y la precisión, lo que sí pasa con una L mayor._
+  _Probando diferentes longitudes de ventanas L hemos llegado a las siguientes conclusiones: Una ventana mayor a 5 (2 valores a cada lado) perjudica la estimacion de pitch, con L=5 obtenemos un mejor resultado que si no utilizamos el filtro de mediana (L=0) y con una longitud de ventana, L=3, (1 valor a cada lado) obtenemos el mejor resultado, eliminando esos picos repentinos en la gráfica del pitch que vemos en la figura del wavesurfer, sin perjudicar demasiado los límites y la precisión, lo que sí pasa con mayores L's._
   
-  _Ejemplo: antes del filtro mediana, vemos algunos picos, o al reves vemos algunos valles fugazes que no se corresponden al pitch._
+  _Ejemplo: antes del filtro mediana, vemos algunos picos, o al reves vemos algunos valles fugazes que no se corresponden al pitch real._
 
    <img src="img/before_fmediana.jpg" width="60">
 
@@ -287,10 +307,9 @@ Filtro de mediana:_
   * Optimización **demostrable** de los parámetros que gobiernan el detector, en concreto, de los que
     gobiernan la decisión sonoro/sordo.
 
-    
-    _Para la optimización hemos terminado haciéndola igual que en la practica 2, shell script de optimizacion: [run_get_pitch.sh](scripts/run_get_pitch.sh), el cual se puede ejecutar sin ningún argumento, lo que ejecuta get_pitch para toda la base de datos y luego se evalúa.- 4 argumentos que serán los thresholds de las 4 principales features: thnorm, thmax, thpot, thzcr, y 8 argumentos que servirán para hacer una búsqueda de las mismas features en los rangos especificados y con la resolución directamente introducida en el código._
+    _Para la optimización hemos terminado haciéndola igual que en la practica 2, shell script de optimizacion: [run_get_pitch.sh](scripts/run_get_pitch.sh), el cual se puede ejecutar sin ningún argumento, lo que ejecuta get_pitch para toda la base de datos y luego se evalúa imprimiendo el total por pantalla.- 4 argumentos que serán los thresholds de las 4 principales features: thnorm, thmax, thpot, thzcr, y 8 argumentos que servirán para hacer una búsqueda de las mismas features en los rangos especificados y con la resolución directamente introducida en el código._
  
-    _En la carpeta matlab_code se puede ver el codigo que hemos intentado hacer para optimizar la estimacion del pitch de forma optima, utilizando la funcion [fminsearch() de matlab](https://es.mathworks.com/help/matlab/ref/fminsearch.html), esta utiliza un metodo Derivative-free optimization ya que tratamos nuestro proyecto como una[black-box](matlab_code/black_box_function.m), a la cual entramos ciertos parametros (thresholds) y nos da un resultado: TOTAL que imprimimos en un fichero de texto, la razon por la que no hemos podido llevarlo a cabo es el fallo al hacer un run del shell script des de la aplicacion de matlab windows._
+    _En la carpeta matlab_code se puede ver el codigo que hemos intentado hacer para optimizar la estimacion del pitch de forma optima, utilizando la funcion [fminsearch() de matlab](https://es.mathworks.com/help/matlab/ref/fminsearch.html), esta utiliza un metodo Derivative-free optimization ya que tratamos nuestro proyecto como una [black-box](matlab_code/black_box_function.m), a la cual entramos ciertos parametros (thresholds) y nos da un resultado: TOTAL, que imprimimos en un fichero de texto, la razon por la que no hemos podido llevarlo a cabo es el fallo al hacer un run del shell script des de la aplicacion de matlab version windows._
 
   * Cualquier otra técnica que se le pueda ocurrir o encuentre en la literatura.
 

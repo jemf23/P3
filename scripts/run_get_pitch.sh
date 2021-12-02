@@ -8,7 +8,7 @@ for fwav in pitch_db/train/*.wav; do
     echo "$GETF0 $fwav $ff0 ----"
     $GETF0 $fwav $ff0 > /dev/null || (echo "Error in $GETF0 $fwav $ff0"; exit 1)
 done
-pitch_evaluate pitch_db/train/*f0ref | fgrep TOTAL
+pitch_evaluate pitch_db/train/*f0ref #| fgrep TOTAL
 fi
 
 # Put here the program (maybe with path)
@@ -34,15 +34,15 @@ fi
 if [ "$#" -eq 8 ]
 then
 
-#parameter1=($(seq $1 0.05 $2))
-#parameter2=($(seq $3 0.05 $4))
-#parameter3=($(seq $5 -0.00005 $6))
-#parameter4=($(seq $7 200 $8))
+parameter1=($(seq $1 0.05 $2))
+parameter2=($(seq $3 0.05 $4))
+parameter3=($(seq $5 -5 $6)) #dB
+parameter4=($(seq $7 200 $8))
 
-parameter1=5
-parameter2=5
-parameter3=-40
-parameter4=($(seq 0 1000 8000))
+#parameter1=($(seq 0.005 0.0001 0.0065))
+#parameter2=0.4
+#parameter3=5 #($(seq $5 -0.00005 $6))
+#parameter4=0 #($(seq 500 500 10000))
 
 rm result_report.txt
 

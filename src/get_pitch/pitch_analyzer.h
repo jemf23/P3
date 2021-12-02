@@ -10,9 +10,9 @@ namespace upc {
   const float MIN_F0 = 20.0F;    ///< Minimum value of pitch in Hertzs
   const float MAX_F0 = 10000.0F; ///< Maximum value of pitch in Hertzs
   const float THR1NORM = 0.9;
-  const float THRMAXNORM = 0.3; 
-  const float THPOWER = -0.005;
-  const float THZCR = 1500;
+  const float THRMAXNORM = 0.275; 
+  const float THPOWER = -55.5;
+  const float THZCR = 1825;
 
   ///
   /// PitchAnalyzer: class that computes the pitch (in Hz) from a signal frame.

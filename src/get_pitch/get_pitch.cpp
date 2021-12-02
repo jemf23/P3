@@ -29,12 +29,12 @@ Usage:
 Options:
     -h, --help  Show this screen
     --version   Show the version of the project
-    -1=FLOAT, --thr1norm=FLOAT  Threshold for r[1]/r[0] unvoice decision  [default: 0.60]
-    -2=FLOAT, --thrmaxnorm=FLOAT  Threshold for r[lag]/r[0] unvoice decision  [default: 0.35]
-    -3=FLOAT, --thpower=FLOAT  Threshold for normalized power used on the unvioce decision  [default: -52]
-    -4=FLOAT, --thzcr=FLOAT  Threshold zcr for unvoice decision [default: 2000]
+    -1=FLOAT, --thr1norm=FLOAT  Threshold for r[1]/r[0] unvoice decision [default: 0.9]
+    -2=FLOAT, --thrmaxnorm=FLOAT  Threshold for r[lag]/r[0] unvoice decision [default: 0.275]
+    -3=FLOAT, --thpower=FLOAT  Threshold for normalized power (dB) used for unvoice decision [default: -55.5]
+    -4=FLOAT, --thzcr=FLOAT  Threshold zcr for unvoice decision [default: 1825]
     -l=INT, --length_median_w=INT  Length of the window used on the median filter, this value must be an odd number [default: 3]
-    -c=FLOAT, --alpha_clipping=FLOAT  Alpha used to determinate the threshold for the central-clipping [default: 0.62]
+    -c=FLOAT, --th_clipping=FLOAT  Alpha used to determinate the threshold for the central-clipping [default: 0.0055]
 
 Arguments:
     input-wav   Wave file with the audio signal
@@ -61,7 +61,7 @@ int main(int argc, const char *argv[]) {
   float thrmaxnorm=stof(args["--thrmaxnorm"].asString());
   float thpower=stof(args["--thpower"].asString());
   unsigned int M=stoi(args["--length_median_w"].asString());
-  float alpha_cc=stof(args["--alpha_clipping"].asString());
+  float th_clipping=stof(args["--th_clipping"].asString());
   float thzcr=stof(args["--thzcr"].asString());
 
   // Read input sound file
@@ -77,11 +77,48 @@ int main(int argc, const char *argv[]) {
 
   // Define analyzer
   //PitchAnalyzer analyzer(n_len, rate, PitchAnalyzer::RECT, 50, 500);
-  PitchAnalyzer analyzer(n_len, rate, PitchAnalyzer::HAMMING, 50, 500, thr1norm, thrmaxnorm, thpower, thzcr);
-
-
+  PitchAnalyzer analyzer(n_len, rate, PitchAnalyzer::RECT, 50, 500, thr1norm, thrmaxnorm, thpower, thzcr);
 
   //Maximum signal power for power normalization
+
+
+  /// \TODO
+  /// Preprocess the input signal in order to ease pitch estimation. For instance,
+  /// central-clipping or low pass filtering may be used.
+  /// \DONE
+  /// Central-clipping implementado
+/*
+  float th_cc=maxPot*alpha_cc;
+  for (unsigned int i=0; i < x.size(); ++i){
+    if(abs(x[i]) < th_cc){
+      x[i] = 0;
+    }else if( x[i] > th_cc){
+      x[i]=x[i] - th_cc;
+    }else if( x[i]< -th_cc){
+      x[i]=x[i] + th_cc;
+    }
+  }
+  */
+  //maxPot=1; //no normalize 
+  
+  //maxPot=10*log10(maxPot);/*1.0f*/ // in dB
+  // Emi solution  
+  vector<float>::iterator it;
+  vector<float> cc;
+  float cota=th_clipping;
+
+  for(it = x.begin(); it != x.end(); ++it){
+    if(*it > cota)
+      cc.push_back(*it-cota);
+    else if(*it < -cota)
+      cc.push_back(*it+cota);
+    else
+      cc.push_back(0);
+  }
+  x=cc;
+
+    //Maximum signal power for power normalization
+    //now after center clipping
   vector<float>::iterator iX2;
   float maxPot = 1.e-9;
   float power;
@@ -94,54 +131,17 @@ int main(int argc, const char *argv[]) {
     for(int i=0; i < n_len; ++i){
       power+=(x2[i]*x2[i]);
     }
-    //power=((float)1/n_len)*power;
     power=power/n_len;
 	//printf("Potencia media de la señal en decibelios: %.2f /n",power);
+  //cout << power << '\t' << endl;
     if(power>maxPot){
       maxPot=power;
     }
     x2.clear();
   }
 
+//float maxPot=1;
 
-
-  /// \TODO
-  /// Preprocess the input signal in order to ease pitch estimation. For instance,
-  /// central-clipping or low pass filtering may be used.
-  /// \DONE
-  /// Central-clipping implementado
-
-  
-  //float th_cc = 0.05;
-  float th_cc=maxPot*alpha_cc;
-  for (unsigned int i=0; i < x.size(); ++i){
-    if(abs(x[i]) < th_cc){
-      x[i] = 0;
-    }else if( x[i] > th_cc){
-      x[i]=x[i] - th_cc;
-    }else if( x[i]< -th_cc){
-      x[i]=x[i] + th_cc;
-    }
-  }
-
-  maxPot=1; //no normalize 
-  
-  //maxPot=10*log10(maxPot);/*1.0f*/ // in dB
-  /* Emi solution
-  vector<float>::iterator it;
-  vector<float> cc;
-  float cota=0.0055;
-
-  for(it = x.begin(); it != x.end(); ++it){
-    if(*it > cota)
-      cc.push_back(*it-cota);
-    else if(*it < -cota)
-      cc.push_back(*it+cota);
-    else
-      cc.push_back(0);
-  }
-  x=cc;
-  */
 
   // Iterate for each frame and save values in f0 vector
   vector<float>::iterator iX;
@@ -163,7 +163,7 @@ int main(int argc, const char *argv[]) {
   /// point n is determined by the data from point n-(L-1)/2 to point n+(L-1)/2.
   /// Then the median value in these L points is chooses as the value the point. */
   /// colab info:https://stackoverflow.com/questions/2114797/compute-median-of-values-stored-in-vector-c
-  if(M%2==1){ //if M is odd
+  if(M%2){ //if M is odd
     vector<float> f0filtered = f0;
 
     unsigned int L_median_W = M;
@@ -183,8 +183,6 @@ int main(int argc, const char *argv[]) {
     }
     f0=f0filtered;
   }
-  /* EMI
-  */
   
   // Write f0 contour into the output file
   ofstream os(output_txt);
